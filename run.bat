@@ -1,5 +1,5 @@
 @echo off
-call c:\Github\openchrome.bat
+@REM call c:\Github\openchrome.bat
 
 pushd c:\Github\jbcars_auto
 
