@@ -72,6 +72,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
 
     # --- Photos (upload all at once) ---
     if car.var_picspath and os.path.isdir(car.var_picspath):
+        import shutil
         all_files = []
         for dirname, _, filenames in os.walk(car.var_picspath):
             for filename in sorted(filenames):
@@ -82,6 +83,14 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
             upload_input = driver.find_elements(By.XPATH, "//input[contains(@id, 'imageUploader')]")[-1]
             upload_input.send_keys('\n'.join(all_files))
             time.sleep(10)
+        # Move the photo folder to photos/old/
+        old_dir = os.path.join(os.path.dirname(car.var_picspath), "old")
+        os.makedirs(old_dir, exist_ok=True)
+        dest = os.path.join(old_dir, os.path.basename(car.var_picspath))
+        if os.path.exists(dest):
+            shutil.rmtree(dest)
+        shutil.move(car.var_picspath, dest)
+        print(f"      Moved photos to: {dest}")
         time.sleep(2)
 
     # --- Description ---
