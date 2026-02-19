@@ -36,10 +36,14 @@ import poster
 
 # Leave empty to process ALL active (non-Gereserveerd) listings.
 # Set to one or more title substrings to only process matching cars.
-FILTER_TITLES = ["peugeot boxer 2.0 hdi/GEKEURD/CAR PASS/euro 6b/6+1 pl/airco"]
+FILTER_TITLES = ["peugeot partner TEPEE 1.2 i/CAR PASS/euro 6b/Garantie"]
+
+# Leave empty for no exclusions.
+# Set to one or more title substrings to skip matching cars.
+EXCLUDE_TITLES = []
 
 # Set to False to only post a new listing without deleting the original.
-DELETE_AFTER_POST = False
+DELETE_AFTER_POST = True
 
 # Set to None to upload all photos, or a number (e.g. 1) to limit uploads for faster testing.
 MAX_PHOTOS = None
@@ -111,7 +115,7 @@ def main():
 
     try:
         # Step 1: Scrape all listings (downloads photos too)
-        cars = scraper.scrape_all_listings(driver, filter_titles=FILTER_TITLES if FILTER_TITLES else None)
+        cars = scraper.scrape_all_listings(driver, filter_titles=FILTER_TITLES if FILTER_TITLES else None, exclude_titles=EXCLUDE_TITLES if EXCLUDE_TITLES else None)
 
         if not cars:
             print("No listings to process. Exiting.")

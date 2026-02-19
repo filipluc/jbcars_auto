@@ -15,19 +15,22 @@ PHOTOS_BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "phot
 DASHBOARD_URL = "https://www.2dehands.be/my-account/sell/index.html"
 
 
-def scrape_all_listings(driver, filter_titles=None):
+def scrape_all_listings(driver, filter_titles=None, exclude_titles=None):
     """
     Navigate to the seller dashboard, collect edit URLs for all active
     (non-Gereserveerd) listings, scrape each one, and return a list of CarData.
 
-    filter_titles: optional list of substrings; if provided, only listings
-                   whose title contains at least one substring are processed.
+    filter_titles:  only process listings matching at least one substring.
+    exclude_titles: skip listings matching any substring.
     """
     driver.get(DASHBOARD_URL)
     time.sleep(4)
 
     listing_items = _collect_listing_items(driver)
     print(f"Found {len(listing_items)} listing(s) on dashboard.")
+
+    def _norm(t):
+        return re.sub(r'\s+', ' ', re.sub(r'[^a-z0-9]', ' ', t.lower())).strip()
 
     cars = []
     for item in listing_items:
@@ -38,11 +41,13 @@ def scrape_all_listings(driver, filter_titles=None):
             continue
 
         if filter_titles:
-            def _norm(t):
-                return re.sub(r'\s+', ' ', re.sub(r'[^a-z0-9]', ' ', t.lower())).strip()
-            match = any(_norm(f) in _norm(title) for f in filter_titles)
-            if not match:
+            if not any(_norm(f) in _norm(title) for f in filter_titles):
                 print(f"  SKIP (not in filter): {title}")
+                continue
+
+        if exclude_titles:
+            if any(_norm(e) in _norm(title) for e in exclude_titles):
+                print(f"  SKIP (excluded): {title}")
                 continue
 
         print(f"  Scraping: {title}")
@@ -192,9 +197,7 @@ def scrape_one_listing(driver, edit_url):
 
     # --- Checked checkboxes (options, warranty, service history, etc.) ---
     all_checkboxes = driver.find_elements(By.XPATH, "//input[starts-with(@name, 'multiSelectAttribute')]")
-    print(f"    Total multiSelect checkboxes found on edit form: {len(all_checkboxes)}")
     option_values = [cb.get_attribute("value") for cb in all_checkboxes if cb.is_selected() and cb.get_attribute("value")]
-    print(f"    Checked options: {option_values}")
     car.var_options = ",".join(option_values)
 
     # --- Photos ---

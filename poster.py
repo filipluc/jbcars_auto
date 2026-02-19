@@ -135,9 +135,6 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     # --- Options (checkboxes) ---
     # We use the raw form values scraped directly from the edit page, so no mapping needed.
     if car.var_options:
-        all_cbs_on_form = driver.find_elements(By.XPATH, "//input[starts-with(@name, 'multiSelectAttribute')]")
-        form_values = [cb.get_attribute("value") for cb in all_cbs_on_form]
-        print(f"    Checkboxes on new form: {form_values}")
         for opt_value in car.var_options.split(','):
             opt_value = opt_value.strip()
             if not opt_value:
@@ -146,9 +143,6 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
                 cb = driver.find_element(By.XPATH, f"//input[starts-with(@name, 'multiSelectAttribute') and @value='{opt_value}']")
                 if not cb.is_selected():
                     cb.click()
-                    print(f"    Checked option: '{opt_value}'")
-                else:
-                    print(f"    Already checked: '{opt_value}'")
                 time.sleep(0.1)
             except NoSuchElementException:
                 print(f"    Warning: option not found on form: '{opt_value}'")
