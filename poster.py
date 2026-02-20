@@ -209,10 +209,17 @@ def delete_old_listing(driver, car: CarData):
     time.sleep(3)
 
     try:
-        # There should now be two spans with the title; [1] is the old one.
-        old_listing = driver.find_elements(
+        # Safety check: there must be exactly 2 listings with this title before deleting.
+        matches = driver.find_elements(
             By.XPATH, f"//span[contains(text(),'{car.var_title}')]"
-        )[1]
+        )
+        if len(matches) < 2:
+            raise Exception(
+                f"Cannot delete old listing: only {len(matches)} listing(s) found with title "
+                f"'{car.var_title}'. New listing may not have been posted. Skipping delete."
+            )
+
+        old_listing = matches[1]
         old_listing.click()
         time.sleep(2)
 
