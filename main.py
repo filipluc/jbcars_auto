@@ -17,6 +17,8 @@ Examples:
     FILTER_TITLES = ["opel combo", "hyundai"]     # run Opels and Hyundais
 """
 
+import datetime
+import os
 import subprocess
 import sys
 import time
@@ -36,11 +38,18 @@ import poster
 
 # Leave empty to process ALL active (non-Gereserveerd) listings.
 # Set to one or more title substrings to only process matching cars.
-FILTER_TITLES = ["peugeot partner TEPEE 1.2 i/CAR PASS/euro 6b/Garantie", "peugeot 208 GT line ,1.2 i/4600 km/alcantara/panorama dak"]
+FILTER_TITLES = []
 
 # Leave empty for no exclusions.
 # Set to one or more title substrings to skip matching cars.
-EXCLUDE_TITLES = []
+EXCLUDE_TITLES = [
+    "peugeot 208 GT line ,1.2 i/4600 km/alcantara/panorama dak",
+    "peugeot partner TEPEE 1.2 i/CAR PASS/euro 6b/Garantie",
+    "peugeot partner 1.6 hdi-92pk/CAR PASS/euro 5/garantie",
+    "opel combo Tour1.6 cdti/GEKEURD/CAR PASS/eerste eigenaar",
+    "peugeot boxer 2.0 hdi/GEKEURD/CAR PASS/euro 6b/6+1 pl/airco",
+    "citroen berlingo 1.6 hdi/CAR PASS/garantie/euro 5"
+]
 
 # Set to False to only post a new listing without deleting the original.
 DELETE_AFTER_POST = True
@@ -63,6 +72,7 @@ CHROME_PATH    = r'C:\Program Files\Google\Chrome\Application\chrome.exe'
 USER_DATA_DIR  = r'C:\ChromeDebugProfile'
 DEBUG_PORT     = 2222
 DASHBOARD_URL  = 'https://www.2dehands.be/my-account/sell/index.html'
+REPORT_FILE    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "report.log")
 
 
 # ---------------------------------------------------------------------------
@@ -185,31 +195,39 @@ def main():
     finally:
         driver.quit()
 
-        print("\n" + "=" * 50)
-        print("SUMMARY")
-        print("=" * 50)
-        print(f"Filter titles               : {len(FILTER_TITLES)} ({', '.join(FILTER_TITLES) if FILTER_TITLES else 'all'})")
+        # Build summary lines (printed to console and appended to report file)
+        lines = []
+        lines.append("=" * 50)
+        lines.append(f"Run: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append("=" * 50)
+        lines.append(f"Filter titles               : {len(FILTER_TITLES)} ({', '.join(FILTER_TITLES) if FILTER_TITLES else 'all'})")
         if not FILTER_TITLES:
-            print(f"Total listings on dashboard : {scrape_stats['total']}")
-        print(f"Skipped (Gereserveerd)      : {scrape_stats['reserved']}")
+            lines.append(f"Total listings on dashboard : {scrape_stats['total']}")
+        lines.append(f"Skipped (Gereserveerd)      : {scrape_stats['reserved']}")
         if EXCLUDE_TITLES and scrape_stats['skipped']:
-            print(f"Skipped (excluded)          : {scrape_stats['skipped']}")
-        print(f"Successfully added          : {cars_added}")
+            lines.append(f"Skipped (excluded)          : {scrape_stats['skipped']}")
+        lines.append(f"Successfully added          : {cars_added}")
         if cars_duplicates:
-            print(f"Skipped (duplicate title)   : {len(cars_duplicates)}")
+            lines.append(f"Skipped (duplicate title)   : {len(cars_duplicates)}")
             for title in cars_duplicates:
-                print(f"  - {title}")
+                lines.append(f"  - {title}")
         if cars_errors:
-            print(f"Errors                      : {len(cars_errors)}")
+            lines.append(f"Errors                      : {len(cars_errors)}")
             for title, err in cars_errors:
-                print(f"  - {title}")
-                print(f"    {err}")
+                lines.append(f"  - {title}")
+                lines.append(f"    {err}")
         if cars_added < total_to_process:
             missing = total_to_process - cars_added
-            print(f"\n⚠  WARNING: {missing} car(s) were not re-posted successfully.")
-            print(f"   The dashboard may have fewer listings than before the run!")
-        print("=" * 50)
+            lines.append("")
+            lines.append(f"WARNING: {missing} car(s) were not re-posted successfully.")
+            lines.append(f"         The dashboard may have fewer listings than before the run!")
+        lines.append("=" * 50)
+
+        print("\n" + "\n".join(lines))
         print("=== Finished ===")
+
+        with open(REPORT_FILE, "a", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n\n")
 
 
 if __name__ == "__main__":
