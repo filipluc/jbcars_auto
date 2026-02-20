@@ -185,17 +185,22 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
         pass
 
     # --- Select free plan ---
-    try:
-        elem_free = driver.find_element(By.XPATH, "//span[text()='Gratis']")
-        elem_free.click()
-        time.sleep(_w(1))
-    except NoSuchElementException:
+    FREE_XPATHS = [
+        "//span[normalize-space(text())='Gratis']",
+        "//label[.//span[normalize-space(text())='Gratis']]",
+        "//*[@id='feature-bundles']//*[normalize-space(text())='Gratis']",
+    ]
+    free_clicked = False
+    for xp in FREE_XPATHS:
         try:
-            elem_free = driver.find_element(By.XPATH, "//*[@id='feature-bundles']/div/div[2]/div/div[2]/label/div[1]/div[1]")
-            elem_free.click()
-            time.sleep(_w(3))
+            driver.find_element(By.XPATH, xp).click()
+            time.sleep(_w(1))
+            free_clicked = True
+            break
         except NoSuchElementException:
-            pass
+            continue
+    if not free_clicked:
+        raise RuntimeError("Could not select free plan — skipping to avoid paid submission")
 
     # --- Submit ---
     elem_submit = driver.find_element(By.XPATH, "//button[contains(@data-testid, 'place-listing-submit-button')]")
