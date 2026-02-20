@@ -42,14 +42,7 @@ FILTER_TITLES = []
 
 # Leave empty for no exclusions.
 # Set to one or more title substrings to skip matching cars.
-EXCLUDE_TITLES = [
-    "peugeot 208 GT line ,1.2 i/4600 km/alcantara/panorama dak",
-    "peugeot partner TEPEE 1.2 i/CAR PASS/euro 6b/Garantie",
-    "peugeot partner 1.6 hdi-92pk/CAR PASS/euro 5/garantie",
-    "opel combo Tour1.6 cdti/GEKEURD/CAR PASS/eerste eigenaar",
-    "peugeot boxer 2.0 hdi/GEKEURD/CAR PASS/euro 6b/6+1 pl/airco",
-    "citroen berlingo 1.6 hdi/CAR PASS/garantie/euro 5"
-]
+EXCLUDE_TITLES = []
 
 # Set to False to only post a new listing without deleting the original.
 DELETE_AFTER_POST = True
