@@ -110,7 +110,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     try:
         elem_url = driver.find_element(By.XPATH, "//input[contains(@id, 'url')]")
         elem_url.send_keys("www.jbcars.be")
-        time.sleep(0.2)
+        time.sleep(_w(0.3))
     except NoSuchElementException:
         pass
 
@@ -140,14 +140,19 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     _set_select(driver, "singleSelectAttribute[interiorcolor]", car.var_interiorcolor)
     _set_select(driver, "singleSelectAttribute[upholstery]",    car.var_upholstery)
     _set_select(driver, "singleSelectAttribute[driveTrain]",    car.var_drivetrain)
+    _set_select(driver, "singleSelectAttribute[warranty]",      car.var_warranty)
 
     # --- Numeric attributes ---
-    _set_numeric(driver, "numericAttribute[constructionYear]",  car.var_year)
-    _set_numeric(driver, "numericAttribute[co2emission]",       car.var_co2)
-    _set_numeric(driver, "numericAttribute[mileage]",           car.var_km)
+    _set_numeric(driver, "numericAttribute[constructionYear]",   car.var_year)
+    _set_numeric(driver, "numericAttribute[co2emission]",        car.var_co2)
+    _set_numeric(driver, "numericAttribute[mileage]",            car.var_km)
     _set_numeric(driver, "numericAttribute[engineDisplacement]", car.var_cilinder)
     _set_numeric(driver, "numericAttribute[numberOfSeatsBE]",    car.var_seats)
     _set_numeric(driver, "textAttribute[carPassUrl]",            car.var_carpass)
+    _set_numeric(driver, "numericAttribute[emptyWeightCars]",    car.var_emptyweight)
+    _set_numeric(driver, "numericAttribute[numberOfCylinders]",  car.var_numcylinders)
+    _set_numeric(driver, "numericAttribute[towingWeightBrakes]", car.var_towingbraked)
+    _set_numeric(driver, "numericAttribute[towingWeightNoBrakes]", car.var_towingunbraked)
 
     # --- Options (checkboxes) ---
     # We use the raw form values scraped directly from the edit page, so no mapping needed.
@@ -206,7 +211,7 @@ def delete_old_listing(driver, car: CarData):
     we delete the second one (index [1]) which is the older entry.
     """
     driver.get(DASHBOARD_URL)
-    time.sleep(3)
+    time.sleep(_w(3))
 
     try:
         # Safety check: there must be exactly 2 listings with this title before deleting.
@@ -221,22 +226,22 @@ def delete_old_listing(driver, car: CarData):
 
         old_listing = matches[1]
         old_listing.click()
-        time.sleep(2)
+        time.sleep(_w(2))
 
         driver.find_element(By.XPATH, "//span[text()='Verwijder']").click()
-        time.sleep(2)
+        time.sleep(_w(2))
 
         driver.find_element(By.XPATH, "//button[contains(text(), 'Verkocht via 2dehands')]").click()
-        time.sleep(1)
+        time.sleep(_w(1))
 
         # Optional "Direct" confirmation
         try:
             driver.find_element(By.XPATH, "//button[text() = 'Direct']").click()
-            time.sleep(1)
+            time.sleep(_w(1))
         except NoSuchElementException:
             pass
 
-        time.sleep(2)
+        time.sleep(_w(2))
         print(f"    Deleted old listing: '{car.var_title}'")
 
     except IndexError:
@@ -258,7 +263,7 @@ def _set_select(driver, name, value):
         el.click()
         el.send_keys(value)
         el.send_keys(Keys.TAB)
-        time.sleep(0.5)
+        time.sleep(_w(0.5))
     except NoSuchElementException:
         pass
 
@@ -272,6 +277,6 @@ def _set_numeric(driver, id_fragment, value):
         el.click()
         el.send_keys(value)
         el.send_keys(Keys.TAB)
-        time.sleep(0.5)
+        time.sleep(_w(0.5))
     except NoSuchElementException:
         pass

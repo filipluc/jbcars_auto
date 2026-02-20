@@ -82,6 +82,7 @@ def launch_chrome():
         f'"{CHROME_PATH}" '
         f'--remote-debugging-port={DEBUG_PORT} '
         f'--user-data-dir="{USER_DATA_DIR}" '
+        f'--disable-blink-features=AutomationControlled '
         f'--start-maximized --new-window "{DASHBOARD_URL}"'
     )
     subprocess.Popen(cmd, shell=True)
@@ -94,6 +95,10 @@ def connect_driver():
     options.debugger_address = f"127.0.0.1:{DEBUG_PORT}"
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
+    # Hide the webdriver flag from JavaScript on every new page
+    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+        "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+    })
     time.sleep(3)
     return driver
 

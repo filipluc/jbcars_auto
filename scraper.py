@@ -1,4 +1,5 @@
 import os
+import random
 import re
 import time
 import requests
@@ -12,6 +13,11 @@ from models import CarData
 
 
 PHOTOS_BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "photos")
+
+
+def _w(base, lo=0.8, hi=1.3):
+    """Return base * random factor for natural timing variation."""
+    return base * random.uniform(lo, hi)
 DASHBOARD_URL = "https://www.2dehands.be/my-account/sell/index.html"
 
 
@@ -132,7 +138,7 @@ def scrape_one_listing(driver, edit_url):
     Returns None if the page cannot be scraped.
     """
     driver.get(edit_url)
-    time.sleep(3)
+    time.sleep(_w(3))
 
     # Click "Wijzig" to open the edit form
     try:
@@ -140,7 +146,7 @@ def scrape_one_listing(driver, edit_url):
             EC.element_to_be_clickable((By.XPATH, "//*[contains(text(),'Wijzig')]"))
         )
         wijzig.click()
-        time.sleep(4)
+        time.sleep(_w(4))
     except TimeoutException:
         print(f"    Warning: Wijzig button not found at {edit_url}")
         return None
@@ -170,6 +176,7 @@ def scrape_one_listing(driver, edit_url):
     car.var_pricetype   = _get_select_value(driver, "singleSelectAttribute[priceType]")
     car.var_upholstery  = _get_select_value(driver, "singleSelectAttribute[upholstery]")
     car.var_drivetrain  = _get_select_value(driver, "singleSelectAttribute[driveTrain]")
+    car.var_warranty    = _get_select_value(driver, "singleSelectAttribute[warranty]")
 
     # --- Category and brand from breadcrumb (e.g. Auto's › Citroën) ---
     car.var_categorie = "Auto's"
@@ -190,8 +197,12 @@ def scrape_one_listing(driver, edit_url):
     car.var_co2      = _get_input_value(driver, By.XPATH, "//input[contains(@id, 'numericAttribute[co2emission]')]")
     car.var_km       = _get_input_value(driver, By.XPATH, "//input[contains(@id, 'numericAttribute[mileage]')]")
     car.var_cilinder = _get_input_value(driver, By.XPATH, "//input[contains(@id, 'numericAttribute[engineDisplacement]')]")
-    car.var_seats    = _get_input_value(driver, By.XPATH, "//input[contains(@id, 'numericAttribute[numberOfSeatsBE]')]")
-    car.var_carpass  = _get_input_value(driver, By.XPATH, "//input[contains(@id, 'textAttribute[carPassUrl]')]")
+    car.var_seats         = _get_input_value(driver, By.XPATH, "//input[contains(@id, 'numericAttribute[numberOfSeatsBE]')]")
+    car.var_carpass       = _get_input_value(driver, By.XPATH, "//input[contains(@id, 'textAttribute[carPassUrl]')]")
+    car.var_emptyweight   = _get_input_value(driver, By.XPATH, "//input[contains(@id, 'numericAttribute[emptyWeightCars]')]")
+    car.var_numcylinders  = _get_input_value(driver, By.XPATH, "//input[contains(@id, 'numericAttribute[numberOfCylinders]')]")
+    car.var_towingbraked   = _get_input_value(driver, By.XPATH, "//input[contains(@id, 'numericAttribute[towingWeightBrakes]')]")
+    car.var_towingunbraked = _get_input_value(driver, By.XPATH, "//input[contains(@id, 'numericAttribute[towingWeightNoBrakes]')]")
 
     # --- Checked checkboxes (options, warranty, service history, etc.) ---
     all_checkboxes = driver.find_elements(By.XPATH, "//input[starts-with(@name, 'multiSelectAttribute')]")
@@ -275,7 +286,18 @@ def download_photos(photo_urls, local_dir):
     if os.path.exists(local_dir):
         shutil.rmtree(local_dir)
     os.makedirs(local_dir, exist_ok=True)
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept": "image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "nl-BE,nl;q=0.9,fr;q=0.8,en;q=0.7",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Referer": "https://www.2dehands.be/",
+        "Connection": "keep-alive",
+    }
     for i, url in enumerate(photo_urls, start=1):
         filename = f"img_{i:03d}.jpg"
         filepath = os.path.join(local_dir, filename)
@@ -287,6 +309,8 @@ def download_photos(photo_urls, local_dir):
             print(f"      Downloaded photo {i}: {filename}")
         except Exception as e:
             print(f"      Warning: could not download photo {i} ({url}): {e}")
+        if i < len(photo_urls):
+            time.sleep(_w(1.0, lo=0.5, hi=1.5))
 
 
 def _sanitize_dirname(title):

@@ -29,6 +29,11 @@ class CarData:
     var_drivetrain: str = ""      # singleSelectAttribute[driveTrain] e.g. "Voorwielaandrijving"
     var_seats: str = ""           # numericAttribute[numberOfSeatsBE]
     var_carpass: str = ""         # textAttribute[carPassUrl]
+    var_warranty: str = ""        # singleSelectAttribute[warranty]
+    var_emptyweight: str = ""     # numericAttribute[emptyWeightCars]
+    var_numcylinders: str = ""    # numericAttribute[numberOfCylinders]
+    var_towingbraked: str = ""    # numericAttribute[towingWeightBrakes]
+    var_towingunbraked: str = ""  # numericAttribute[towingWeightNoBrakes]
     edit_url: str = ""            # URL of original listing edit page (used for deletion)
 
     def __str__(self):
