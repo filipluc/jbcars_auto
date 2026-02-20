@@ -36,7 +36,7 @@ import poster
 
 # Leave empty to process ALL active (non-Gereserveerd) listings.
 # Set to one or more title substrings to only process matching cars.
-FILTER_TITLES = ["peugeot boxer 2.0 hdi/GEKEURD/CAR PASS/euro 6b/6+1 pl/airco"]
+FILTER_TITLES = ["peugeot partner TEPEE 1.2 i/CAR PASS/euro 6b/Garantie", "peugeot 208 GT line ,1.2 i/4600 km/alcantara/panorama dak"]
 
 # Leave empty for no exclusions.
 # Set to one or more title substrings to skip matching cars.
@@ -183,16 +183,19 @@ def main():
         print("\n" + "=" * 50)
         print("SUMMARY")
         print("=" * 50)
-        print(f"Total listings on dashboard : {scrape_stats['total']}")
+        print(f"Filter titles               : {len(FILTER_TITLES)} ({', '.join(FILTER_TITLES) if FILTER_TITLES else 'all'})")
+        if not FILTER_TITLES:
+            print(f"Total listings on dashboard : {scrape_stats['total']}")
         print(f"Skipped (Gereserveerd)      : {scrape_stats['reserved']}")
-        print(f"Skipped (filter/excluded)   : {scrape_stats['skipped']}")
+        if EXCLUDE_TITLES and scrape_stats['skipped']:
+            print(f"Skipped (excluded)          : {scrape_stats['skipped']}")
         print(f"Successfully added          : {cars_added}")
-        print(f"Skipped (duplicate title)   : {len(cars_duplicates)}")
         if cars_duplicates:
+            print(f"Skipped (duplicate title)   : {len(cars_duplicates)}")
             for title in cars_duplicates:
                 print(f"  - {title}")
-        print(f"Errors                      : {len(cars_errors)}")
         if cars_errors:
+            print(f"Errors                      : {len(cars_errors)}")
             for title, err in cars_errors:
                 print(f"  - {title}")
                 print(f"    {err}")
