@@ -15,13 +15,14 @@ PHOTOS_BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "phot
 DASHBOARD_URL = "https://www.2dehands.be/my-account/sell/index.html"
 
 
-def scrape_all_listings(driver, filter_titles=None, exclude_titles=None):
+def collect_listings(driver, filter_titles=None, exclude_titles=None):
     """
-    Navigate to the seller dashboard, collect edit URLs for all active
-    (non-Gereserveerd) listings, scrape each one, and return a list of CarData.
+    Navigate to the seller dashboard and return the filtered list of listing
+    items to process, plus stats.  Does NOT scrape each listing yet.
 
-    filter_titles:  only process listings matching at least one substring.
-    exclude_titles: skip listings matching any substring.
+    Returns: (items, stats)
+      items: list of (title, edit_url) for listings that pass all filters
+      stats: dict with 'total', 'reserved', 'skipped' counts
     """
     driver.get(DASHBOARD_URL)
     time.sleep(4)
@@ -32,34 +33,31 @@ def scrape_all_listings(driver, filter_titles=None, exclude_titles=None):
     def _norm(t):
         return re.sub(r'\s+', ' ', re.sub(r'[^a-z0-9]', ' ', t.lower())).strip()
 
-    cars = []
-    for item in listing_items:
-        title, edit_url, is_reserved = item
+    stats = {'total': len(listing_items), 'reserved': 0, 'skipped': 0}
+    filtered = []
 
+    for title, edit_url, is_reserved in listing_items:
         if is_reserved:
             print(f"  SKIP (Gereserveerd): {title}")
+            stats['reserved'] += 1
             continue
 
         if filter_titles:
             if not any(_norm(f) in _norm(title) for f in filter_titles):
                 print(f"  SKIP (not in filter): {title}")
+                stats['skipped'] += 1
                 continue
 
         if exclude_titles:
             if any(_norm(e) in _norm(title) for e in exclude_titles):
                 print(f"  SKIP (excluded): {title}")
+                stats['skipped'] += 1
                 continue
 
-        print(f"  Scraping: {title}")
-        car = scrape_one_listing(driver, edit_url)
-        if car:
-            cars.append(car)
-        # Return to dashboard for next listing
-        driver.get(DASHBOARD_URL)
-        time.sleep(4)
+        filtered.append((title, edit_url))
 
-    print(f"\nScraped {len(cars)} car(s) total.")
-    return cars
+    print(f"\n{len(filtered)} car(s) to process.")
+    return filtered, stats
 
 
 def _collect_listing_items(driver):

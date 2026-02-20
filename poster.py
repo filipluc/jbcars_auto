@@ -6,7 +6,13 @@ Logic adapted from jbcars/AddCars/general.py (addCarFunction / deleteCarFunction
 """
 
 import os
+import random
 import time
+
+
+def _w(base, lo=0.8, hi=1.3):
+    """Return base * random factor to add natural timing variation."""
+    return base * random.uniform(lo, hi)
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -38,7 +44,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     max_photos: if set, only upload that many photos (None = all).
     desc_footer: text appended to the description."""
     driver.get(DASHBOARD_URL)
-    time.sleep(3)
+    time.sleep(_w(3))
 
     # Click "Plaats zoekertje" (Place listing)
     driver.find_element(By.LINK_TEXT, 'Plaats zoekertje').click()
@@ -46,7 +52,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
         WebDriverWait(driver, 8).until(EC.title_contains("tweedehands"))
     except TimeoutException:
         pass
-    time.sleep(4)
+    time.sleep(_w(4))
 
     # --- Title ---
     elem_title = WebDriverWait(driver, 10).until(
@@ -55,20 +61,20 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     elem_title.clear()
     elem_title.send_keys(car.var_title)
     elem_title.send_keys(Keys.TAB)
-    time.sleep(1)
+    time.sleep(_w(1))
 
     # --- Category and brand (top-level dropdowns) ---
     select_cat = Select(driver.find_element(By.ID, 'cat_sel_1'))
     select_cat.select_by_visible_text(car.var_categorie)
-    time.sleep(1)
+    time.sleep(_w(1))
 
     select_brand = Select(driver.find_element(By.ID, 'cat_sel_2'))
     select_brand.select_by_visible_text(car.var_brand if car.var_brand else "Bestelwagens en Lichte vracht")
-    time.sleep(1)
+    time.sleep(_w(1))
 
     submit_btn = driver.find_element(By.CLASS_NAME, 'CategorySelection-module-submitButton')
     submit_btn.click()
-    time.sleep(3)
+    time.sleep(_w(3))
 
     # --- Photos (upload all at once) ---
     if car.var_picspath and os.path.isdir(car.var_picspath):
@@ -82,8 +88,9 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
         if all_files:
             upload_input = driver.find_elements(By.XPATH, "//input[contains(@id, 'imageUploader')]")[-1]
             upload_input.send_keys('\n'.join(all_files))
-            time.sleep(10)
-        # Move the photo folder to photos/old/
+            time.sleep(_w(10))
+            print(f"      Photos sent: {len(all_files)}")
+        # Move the photo folder to photos/old/ only after confirmed upload
         old_dir = os.path.join(os.path.dirname(car.var_picspath), "old")
         os.makedirs(old_dir, exist_ok=True)
         dest = os.path.join(old_dir, os.path.basename(car.var_picspath))
@@ -91,12 +98,13 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
             shutil.rmtree(dest)
         shutil.move(car.var_picspath, dest)
         print(f"      Moved photos to: {dest}")
-        time.sleep(2)
+        time.sleep(_w(2))
 
     # --- Description ---
     elem_desc = driver.find_element(By.CSS_SELECTOR, "div.RichTextEditor-module-editorInput[contenteditable='true']")
-    elem_desc.send_keys(car.var_desc + desc_footer)
-    time.sleep(1)
+    footer_to_add = "" if (desc_footer and desc_footer.strip() in car.var_desc) else desc_footer
+    elem_desc.send_keys(car.var_desc + footer_to_add)
+    time.sleep(_w(1))
 
     # --- Website URL ---
     try:
@@ -119,7 +127,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
         elem_model.click()
         elem_model.send_keys(car.var_model)
         elem_model.send_keys(Keys.TAB)
-        time.sleep(0.5)
+        time.sleep(_w(0.5))
 
     # --- Single-select attributes ---
     _set_select(driver, "singleSelectAttribute[priceType]",     car.var_pricetype)
@@ -152,7 +160,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
                 cb = driver.find_element(By.XPATH, f"//input[starts-with(@name, 'multiSelectAttribute') and @value='{opt_value}']")
                 if not cb.is_selected():
                     cb.click()
-                time.sleep(0.1)
+                time.sleep(_w(0.1))
             except NoSuchElementException:
                 print(f"    Warning: option not found on form: '{opt_value}'")
 
@@ -161,13 +169,13 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     elem_price.click()
     elem_price.send_keys(car.var_price)
     elem_price.send_keys(Keys.TAB)
-    time.sleep(0.5)
+    time.sleep(_w(0.5))
 
     # --- Disable bidding toggle ---
     try:
         elem_bid = driver.find_element(By.XPATH, "//div/label[contains(@id, 'syi-bidding-switch')]")
         elem_bid.click()
-        time.sleep(0.5)
+        time.sleep(_w(0.5))
     except NoSuchElementException:
         pass
 
@@ -175,19 +183,19 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     try:
         elem_free = driver.find_element(By.XPATH, "//span[text()='Gratis']")
         elem_free.click()
-        time.sleep(1)
+        time.sleep(_w(1))
     except NoSuchElementException:
         try:
             elem_free = driver.find_element(By.XPATH, "//*[@id='feature-bundles']/div/div[2]/div/div[2]/label/div[1]/div[1]")
             elem_free.click()
-            time.sleep(3)
+            time.sleep(_w(3))
         except NoSuchElementException:
             pass
 
     # --- Submit ---
     elem_submit = driver.find_element(By.XPATH, "//button[contains(@data-testid, 'place-listing-submit-button')]")
     elem_submit.click()
-    time.sleep(20)
+    time.sleep(_w(20))
     print(f"    Posted new listing: '{car.var_title}'")
 
 

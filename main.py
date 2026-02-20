@@ -36,7 +36,7 @@ import poster
 
 # Leave empty to process ALL active (non-Gereserveerd) listings.
 # Set to one or more title substrings to only process matching cars.
-FILTER_TITLES = ["peugeot partner TEPEE 1.2 i/CAR PASS/euro 6b/Garantie"]
+FILTER_TITLES = ["peugeot boxer 2.0 hdi/GEKEURD/CAR PASS/euro 6b/6+1 pl/airco"]
 
 # Leave empty for no exclusions.
 # Set to one or more title substrings to skip matching cars.
@@ -113,32 +113,94 @@ def main():
     launch_chrome()
     driver = connect_driver()
 
-    try:
-        # Step 1: Scrape all listings (downloads photos too)
-        cars = scraper.scrape_all_listings(driver, filter_titles=FILTER_TITLES if FILTER_TITLES else None, exclude_titles=EXCLUDE_TITLES if EXCLUDE_TITLES else None)
+    cars_added = 0
+    total_to_process = 0
+    cars_errors = []       # list of (title, error_message)
+    cars_duplicates = []   # list of titles that appeared more than once
+    scrape_stats = {'total': 0, 'reserved': 0, 'skipped': 0}
 
-        if not cars:
+    try:
+        # Step 1: Collect filtered listing items from dashboard (no scraping yet)
+        items, scrape_stats = scraper.collect_listings(
+            driver,
+            filter_titles=FILTER_TITLES if FILTER_TITLES else None,
+            exclude_titles=EXCLUDE_TITLES if EXCLUDE_TITLES else None,
+        )
+
+        if not items:
             print("No listings to process. Exiting.")
             return
 
-        print(f"\n--- Starting re-post loop for {len(cars)} car(s) ---\n")
+        # Detect duplicate titles and remove them from the processing list
+        from collections import Counter
+        title_counts = Counter(title for title, _ in items)
+        duplicate_titles = {t for t, c in title_counts.items() if c > 1}
+        if duplicate_titles:
+            for t in duplicate_titles:
+                print(f"  SKIP (duplicate title): {t}")
+                cars_duplicates.append(t)
+            items = [(title, url) for title, url in items if title not in duplicate_titles]
 
-        for i, car in enumerate(cars, start=1):
-            print(f"[{i}/{len(cars)}] Processing: {car.var_title}")
+        if not items:
+            print("No listings to process after duplicate check. Exiting.")
+            return
+
+        total_to_process = len(items)
+        print(f"\n--- Processing {total_to_process} car(s) one by one ---\n")
+
+        for i, (title, edit_url) in enumerate(items, start=1):
+            print(f"[{i}/{len(items)}] {title}")
             try:
+                # Scrape this single car
+                car = scraper.scrape_one_listing(driver, edit_url)
+                if not car:
+                    raise Exception("Scraping returned no data.")
+
+                # Post new listing
                 poster.post_listing(driver, car, max_photos=MAX_PHOTOS, desc_footer=DESC_FOOTER)
                 time.sleep(2)
+
+                # Delete old listing
                 if DELETE_AFTER_POST:
                     poster.delete_old_listing(driver, car)
                 else:
                     print(f"  Skipping delete (DELETE_AFTER_POST=False).")
+
+                cars_added += 1
                 print(f"  Done.\n")
             except Exception as e:
-                print(f"  ERROR processing '{car.var_title}': {e}")
+                print(f"  ERROR: {e}")
+                cars_errors.append((title, str(e)))
                 print("  Continuing with next car...\n")
+
+            # Return to dashboard for next car
+            driver.get('https://www.2dehands.be/my-account/sell/index.html')
+            time.sleep(3)
 
     finally:
         driver.quit()
+
+        print("\n" + "=" * 50)
+        print("SUMMARY")
+        print("=" * 50)
+        print(f"Total listings on dashboard : {scrape_stats['total']}")
+        print(f"Skipped (Gereserveerd)      : {scrape_stats['reserved']}")
+        print(f"Skipped (filter/excluded)   : {scrape_stats['skipped']}")
+        print(f"Successfully added          : {cars_added}")
+        print(f"Skipped (duplicate title)   : {len(cars_duplicates)}")
+        if cars_duplicates:
+            for title in cars_duplicates:
+                print(f"  - {title}")
+        print(f"Errors                      : {len(cars_errors)}")
+        if cars_errors:
+            for title, err in cars_errors:
+                print(f"  - {title}")
+                print(f"    {err}")
+        if cars_added < total_to_process:
+            missing = total_to_process - cars_added
+            print(f"\n⚠  WARNING: {missing} car(s) were not re-posted successfully.")
+            print(f"   The dashboard may have fewer listings than before the run!")
+        print("=" * 50)
         print("=== Finished ===")
 
 
