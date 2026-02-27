@@ -233,7 +233,10 @@ def delete_old_listing(driver, car: CarData):
         old_listing.click()
         time.sleep(_w(2))
 
-        driver.find_element(By.XPATH, "//span[text()='Verwijder']").click()
+        verwijder = driver.find_element(By.XPATH, "//span[text()='Verwijder']")
+        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", verwijder)
+        time.sleep(0.3)
+        driver.execute_script("arguments[0].click();", verwijder)
         time.sleep(_w(2))
 
         driver.find_element(By.XPATH, "//button[contains(text(), 'Verkocht via 2dehands')]").click()
