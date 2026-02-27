@@ -145,7 +145,9 @@ def scrape_one_listing(driver, edit_url):
         wijzig = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//*[contains(text(),'Wijzig')]"))
         )
-        wijzig.click()
+        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", wijzig)
+        time.sleep(0.3)
+        driver.execute_script("arguments[0].click();", wijzig)
         time.sleep(_w(4))
     except TimeoutException:
         print(f"    Warning: Wijzig button not found at {edit_url}")
