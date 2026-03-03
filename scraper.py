@@ -137,8 +137,21 @@ def scrape_one_listing(driver, edit_url):
     and return a CarData object.
     Returns None if the page cannot be scraped.
     """
-    driver.get(edit_url)
+    # Extract listing ID from edit_url (e.g. "m2372621653")
+    listing_id = edit_url.rstrip('/').split('/')[-1]
+
+    # Navigate to dashboard and click the listing naturally — Wijzig only appears this way
+    driver.get(DASHBOARD_URL)
     time.sleep(_w(3))
+    try:
+        listing_link = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, f"//a[contains(@href, '{listing_id}')]"))
+        )
+        driver.execute_script("arguments[0].click();", listing_link)
+        time.sleep(_w(3))
+    except TimeoutException:
+        print(f"    Warning: could not find listing {listing_id} on dashboard")
+        return None
 
     # Click "Wijzig" to open the edit form
     try:
@@ -150,7 +163,7 @@ def scrape_one_listing(driver, edit_url):
         driver.execute_script("arguments[0].click();", wijzig)
         time.sleep(_w(4))
     except TimeoutException:
-        print(f"    Warning: Wijzig button not found at {edit_url}")
+        print(f"    Warning: Wijzig button not found at {driver.current_url}")
         return None
 
     car = CarData()

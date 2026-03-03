@@ -230,7 +230,7 @@ def delete_old_listing(driver, car: CarData):
             )
 
         old_listing = matches[1]
-        old_listing.click()
+        driver.execute_script("arguments[0].click();", old_listing)
         time.sleep(_w(2))
 
         verwijder = driver.find_element(By.XPATH, "//span[text()='Verwijder']")
