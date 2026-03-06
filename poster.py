@@ -239,12 +239,14 @@ def delete_old_listing(driver, car: CarData):
         driver.execute_script("arguments[0].click();", verwijder)
         time.sleep(_w(2))
 
-        driver.find_element(By.XPATH, "//button[contains(text(), 'Verkocht via 2dehands')]").click()
+        verkocht_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Verkocht via 2dehands')]")
+        driver.execute_script("arguments[0].click();", verkocht_btn)
         time.sleep(_w(1))
 
         # Optional "Direct" confirmation
         try:
-            driver.find_element(By.XPATH, "//button[text() = 'Direct']").click()
+            direct_btn = driver.find_element(By.XPATH, "//button[text() = 'Direct']")
+            driver.execute_script("arguments[0].click();", direct_btn)
             time.sleep(_w(1))
         except NoSuchElementException:
             pass
