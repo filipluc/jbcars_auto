@@ -282,12 +282,29 @@ def _collect_photo_urls(driver):
     seen = set()
     urls = []
     for img in imgs:
-        src = img.get_attribute("src") or ""
-        # Prefer the largest version: strip size suffixes and use the base URL
-        src = re.sub(r'_\d+x\d+', '', src)  # remove e.g. _320x240
-        if src and src not in seen:
-            seen.add(src)
-            urls.append(src)
+        # Prefer srcset — pick the highest-resolution candidate
+        srcset = img.get_attribute("srcset") or ""
+        best = ""
+        if srcset:
+            candidates = []
+            for part in srcset.split(","):
+                part = part.strip()
+                tokens = part.split()
+                if tokens:
+                    url = tokens[0]
+                    w = int(tokens[1].rstrip("w")) if len(tokens) > 1 and tokens[1].endswith("w") else 0
+                    candidates.append((w, url))
+            if candidates:
+                best = max(candidates, key=lambda x: x[0])[1]
+
+        # Fall back to src, stripping any size suffix
+        if not best:
+            best = img.get_attribute("src") or ""
+        best = re.sub(r'_\d+x\d+', '', best)
+
+        if best and best not in seen:
+            seen.add(best)
+            urls.append(best)
     return urls
 
 
