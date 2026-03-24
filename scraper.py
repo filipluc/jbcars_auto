@@ -292,6 +292,8 @@ def _collect_photo_urls(driver):
                 tokens = part.split()
                 if tokens:
                     url = tokens[0]
+                    if "images.2dehands.be" not in url:
+                        continue  # skip CDN URLs that don't resolve outside the browser
                     w = int(tokens[1].rstrip("w")) if len(tokens) > 1 and tokens[1].endswith("w") else 0
                     candidates.append((w, url))
             if candidates:
