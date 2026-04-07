@@ -46,20 +46,24 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     driver.get(DASHBOARD_URL)
     time.sleep(_w(3))
 
-    # Click "Plaats zoekertje" (Place listing)
-    print(f"      Step: plaats zoekertje")
-    driver.find_element(By.LINK_TEXT, 'Plaats zoekertje').click()
+    # Navigate to "Plaats zoekertje" form
+    plaats_link = driver.find_element(By.CSS_SELECTOR, "a[data-role='placeAd']")
+    href = plaats_link.get_attribute('href')
+    print(f"      Step: plaats zoekertje | href={href}")
+    driver.get(href)
     try:
         WebDriverWait(driver, 15).until(EC.title_contains("tweedehands"))
     except TimeoutException:
         pass
+    print(f"      Step: plaats zoekertje navigated | url={driver.current_url}")
     time.sleep(_w(7))
 
     # --- Title ---
-    print(f"      Step: title | value={repr(car.var_title)}")
+    print(f"      Step: title | url={driver.current_url} | value={repr(car.var_title)}")
     elem_title = WebDriverWait(driver, 15).until(
         EC.presence_of_element_located((By.XPATH, "//input[@id='title_nl-BE' or @id='TextField-vulEenTitelIn']"))
     )
+    print(f"      Step: title element found, id={elem_title.get_attribute('id')}")
     time.sleep(_w(1))
     driver.execute_script(
         "arguments[0].focus(); document.execCommand('insertText', false, arguments[1]);",
@@ -92,6 +96,9 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
                     break
                 all_files.append(os.path.join(dirname, filename))
         if all_files:
+            WebDriverWait(driver, 15).until(
+                EC.presence_of_element_located((By.XPATH, "//input[contains(@id, 'imageUploader')]"))
+            )
             upload_input = driver.find_elements(By.XPATH, "//input[contains(@id, 'imageUploader')]")[-1]
             upload_input.send_keys('\n'.join(all_files))
             wait_secs = max(15, len(all_files) * 1.5)
