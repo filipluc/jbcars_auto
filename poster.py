@@ -47,23 +47,28 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     time.sleep(_w(3))
 
     # Click "Plaats zoekertje" (Place listing)
+    print(f"      Step: plaats zoekertje")
     driver.find_element(By.LINK_TEXT, 'Plaats zoekertje').click()
     try:
-        WebDriverWait(driver, 8).until(EC.title_contains("tweedehands"))
+        WebDriverWait(driver, 15).until(EC.title_contains("tweedehands"))
     except TimeoutException:
         pass
-    time.sleep(_w(4))
+    time.sleep(_w(7))
 
     # --- Title ---
-    elem_title = WebDriverWait(driver, 10).until(
+    print(f"      Step: title | value={repr(car.var_title)}")
+    elem_title = WebDriverWait(driver, 15).until(
         EC.presence_of_element_located((By.XPATH, "//input[@id='title_nl-BE' or @id='TextField-vulEenTitelIn']"))
     )
-    elem_title.clear()
-    elem_title.send_keys(car.var_title)
-    elem_title.send_keys(Keys.TAB)
+    time.sleep(_w(1))
+    driver.execute_script(
+        "arguments[0].focus(); document.execCommand('insertText', false, arguments[1]);",
+        elem_title, car.var_title
+    )
     time.sleep(_w(1))
 
     # --- Category and brand (top-level dropdowns) ---
+    print(f"      Step: category/brand")
     select_cat = Select(driver.find_element(By.ID, 'cat_sel_1'))
     select_cat.select_by_visible_text(car.var_categorie)
     time.sleep(_w(1))
@@ -77,6 +82,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     time.sleep(_w(3))
 
     # --- Photos (upload all at once) ---
+    print(f"      Step: photos")
     if car.var_picspath and os.path.isdir(car.var_picspath):
         import shutil
         all_files = []
@@ -102,12 +108,14 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
         time.sleep(_w(2))
 
     # --- Description ---
+    print(f"      Step: description")
     elem_desc = driver.find_element(By.CSS_SELECTOR, "div.RichTextEditor-module-editorInput[contenteditable='true']")
     footer_to_add = "" if (desc_footer and desc_footer.strip() in car.var_desc) else desc_footer
     elem_desc.send_keys(car.var_desc + footer_to_add)
     time.sleep(_w(1))
 
     # --- Website URL ---
+    print(f"      Step: url")
     try:
         elem_url = driver.find_element(By.XPATH, "//input[contains(@id, 'url')]")
         elem_url.send_keys("www.jbcars.be")
@@ -116,6 +124,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
         pass
 
     # --- Model / brand sub-select ---
+    print(f"      Step: model")
     elem_model = None
     try:
         elem_model = driver.find_element(By.XPATH, "//select[@name='singleSelectAttribute[model]']")
@@ -131,6 +140,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
         time.sleep(_w(0.5))
 
     # --- Single-select attributes ---
+    print(f"      Step: selects")
     _set_select(driver, "singleSelectAttribute[priceType]",     car.var_pricetype)
     _set_select(driver, "singleSelectAttribute[fuel]",          car.var_gas)
     _set_select(driver, "singleSelectAttribute[euronormBE]",    car.var_euro)
@@ -144,6 +154,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     _set_select(driver, "singleSelectAttribute[warranty]",      car.var_warranty)
 
     # --- Numeric attributes ---
+    print(f"      Step: numerics")
     _set_numeric(driver, "numericAttribute[constructionYear]",   car.var_year)
     _set_numeric(driver, "numericAttribute[co2emission]",        car.var_co2)
     _set_numeric(driver, "numericAttribute[mileage]",            car.var_km)
@@ -156,6 +167,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     _set_numeric(driver, "numericAttribute[towingWeightNoBrakes]", car.var_towingunbraked)
 
     # --- Options (checkboxes) ---
+    print(f"      Step: options")
     # We use the raw form values scraped directly from the edit page, so no mapping needed.
     if car.var_options:
         for opt_value in car.var_options.split(','):
@@ -171,6 +183,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
                 print(f"    Warning: option not found on form: '{opt_value}'")
 
     # --- Price ---
+    print(f"      Step: price")
     elem_price = driver.find_element(By.XPATH, "//input[contains(@name, 'price.value')]")
     elem_price.click()
     elem_price.send_keys(car.var_price)
@@ -178,6 +191,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     time.sleep(_w(0.5))
 
     # --- Disable bidding toggle ---
+    print(f"      Step: bidding")
     try:
         elem_bid = driver.find_element(By.XPATH, "//div/label[contains(@id, 'syi-bidding-switch')]")
         elem_bid.click()
@@ -186,6 +200,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
         pass
 
     # --- Select free plan ---
+    print(f"      Step: free plan")
     FREE_XPATHS = [
         "//span[normalize-space(text())='Gratis']",
         "//label[.//span[normalize-space(text())='Gratis']]",
@@ -204,6 +219,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
         raise RuntimeError("Could not select free plan — skipping to avoid paid submission")
 
     # --- Submit ---
+    print(f"      Step: submit")
     elem_submit = driver.find_element(By.XPATH, "//button[contains(@data-testid, 'place-listing-submit-button')]")
     elem_submit.click()
     time.sleep(_w(20))
