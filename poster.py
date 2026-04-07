@@ -88,7 +88,8 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
         if all_files:
             upload_input = driver.find_elements(By.XPATH, "//input[contains(@id, 'imageUploader')]")[-1]
             upload_input.send_keys('\n'.join(all_files))
-            time.sleep(_w(10))
+            wait_secs = max(15, len(all_files) * 1.5)
+            time.sleep(_w(wait_secs))
             print(f"      Photos sent: {len(all_files)}")
         # Move the photo folder to photos/old/ only after confirmed upload
         old_dir = os.path.join(os.path.dirname(car.var_picspath), "old")
