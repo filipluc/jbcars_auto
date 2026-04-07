@@ -82,8 +82,11 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     time.sleep(_w(1))
 
     submit_btn = driver.find_element(By.CLASS_NAME, 'CategorySelection-module-submitButton')
-    submit_btn.click()
-    time.sleep(_w(3))
+    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", submit_btn)
+    time.sleep(0.3)
+    driver.execute_script("arguments[0].click();", submit_btn)
+    print(f"      Step: category submit clicked")
+    time.sleep(_w(6))
 
     # --- Photos (upload all at once) ---
     print(f"      Step: photos")
@@ -96,11 +99,14 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
                     break
                 all_files.append(os.path.join(dirname, filename))
         if all_files:
-            WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.XPATH, "//input[contains(@id, 'imageUploader')]"))
-            )
-            upload_input = driver.find_elements(By.XPATH, "//input[contains(@id, 'imageUploader')]")[-1]
-            upload_input.send_keys('\n'.join(all_files))
+            time.sleep(_w(5))
+            upload_inputs = driver.find_elements(By.XPATH, "//input[contains(@id, 'imageUploader')]")
+            if not upload_inputs:
+                print(f"      Warning: image uploader not found, skipping photos")
+            else:
+                upload_input = upload_inputs[-1]
+                print(f"      Step: photos upload input found, sending {len(all_files)} file(s)")
+                upload_input.send_keys('\n'.join(all_files))
             wait_secs = max(15, len(all_files) * 1.5)
             time.sleep(_w(wait_secs))
             print(f"      Photos sent: {len(all_files)}")
@@ -243,17 +249,25 @@ def delete_old_listing(driver, car: CarData):
     time.sleep(_w(3))
 
     try:
-        # Safety check: there must be exactly 2 listings with this title before deleting.
-        matches = driver.find_elements(
-            By.XPATH, f"//span[contains(text(),'{car.var_title}')]"
-        )
-        if len(matches) < 2:
+        # Safety check: the new listing must be visible on the dashboard before we delete the old one.
+        # The new listing's title (as entered in the form, with slashes) should appear in a span.
+        new_check = driver.find_elements(By.XPATH, f"//span[contains(text(),'{car.var_title}')]")
+        if not new_check:
             raise Exception(
-                f"Cannot delete old listing: only {len(matches)} listing(s) found with title "
-                f"'{car.var_title}'. New listing may not have been posted. Skipping delete."
+                f"Cannot delete old listing: new listing '{car.var_title}' not visible on dashboard. "
+                f"Post may have failed — skipping delete to preserve original."
             )
 
-        old_listing = matches[1]
+        # Find the old listing by its known listing ID from the edit URL.
+        listing_id = car.edit_url.rstrip('/').split('/')[-1]
+        old_listings = driver.find_elements(By.XPATH, f"//a[contains(@href, '{listing_id}')]")
+        if not old_listings:
+            raise Exception(
+                f"Cannot delete old listing: listing ID '{listing_id}' not found on dashboard. "
+                f"It may have already been deleted."
+            )
+
+        old_listing = old_listings[0]
         driver.execute_script("arguments[0].click();", old_listing)
         time.sleep(_w(2))
 
