@@ -233,9 +233,17 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
 
     # --- Submit ---
     print(f"      Step: submit")
+    form_url = driver.current_url
     elem_submit = driver.find_element(By.XPATH, "//button[contains(@data-testid, 'place-listing-submit-button')]")
     elem_submit.click()
     time.sleep(_w(20))
+    post_url = driver.current_url
+    print(f"      Step: submit done | url={post_url}")
+    if post_url == form_url or '/plaats' in post_url:
+        raise RuntimeError(
+            f"Post submission failed — URL did not navigate away from form ({post_url}). "
+            f"Skipping delete to preserve original listing."
+        )
     print(f"    Posted new listing: '{car.var_title}'")
 
 
@@ -249,13 +257,12 @@ def delete_old_listing(driver, car: CarData):
     time.sleep(_w(3))
 
     try:
-        # Safety check: the new listing must be visible on the dashboard before we delete the old one.
-        # The new listing's title (as entered in the form, with slashes) should appear in a span.
-        new_check = driver.find_elements(By.XPATH, f"//span[contains(text(),'{car.var_title}')]")
-        if not new_check:
+        # Safety check: both old and new listing must be visible (2 matches) before deleting.
+        matches = driver.find_elements(By.XPATH, f"//span[contains(text(),'{car.var_title}')]")
+        if len(matches) < 2:
             raise Exception(
-                f"Cannot delete old listing: new listing '{car.var_title}' not visible on dashboard. "
-                f"Post may have failed — skipping delete to preserve original."
+                f"Cannot delete old listing: only {len(matches)} listing(s) found for "
+                f"'{car.var_title}'. New listing may not be posted — skipping delete."
             )
 
         # Find the old listing by its known listing ID from the edit URL.

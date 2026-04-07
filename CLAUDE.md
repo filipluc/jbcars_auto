@@ -1,12 +1,17 @@
 # CLAUDE.md — Rules for this project
 
-## CRITICAL: Never remove safety checks
+## CRITICAL: Never remove safety checks before deleting listings
 
-The delete flow in `poster.py` (`delete_old_listing`) has a two-part safety check before deleting any listing:
+Deleting a listing on 2dehands.be is **permanent and unrecoverable**. This has already caused data loss once.
 
-1. **New listing must be visible on the dashboard** — verified by searching for `car.var_title` in a span.
-2. **Old listing must be findable by its listing ID** — verified by searching for `car.edit_url`'s listing ID in an `<a>` href.
+### post_listing must verify submission succeeded
+After clicking submit, check that the URL navigated away from the form (`/plaats`). If the URL did not change, raise `RuntimeError` so `main.py` catches it and never calls `delete_old_listing`.
 
-**Never remove or bypass either of these checks, for any reason.** If the new listing was not successfully posted and the old one gets deleted, the listing is gone permanently with no recovery. This has already happened once.
+### delete_old_listing has two required checks — never remove either
 
-When refactoring the delete function (e.g. changing how listings are located), always preserve both safety conditions before the actual delete steps execute.
+1. **Two title matches required** — `//span[contains(text(), car.var_title)]` must return at least 2 results (old listing + new listing both visible on dashboard). If fewer than 2, skip delete.
+2. **Old listing found by ID** — find the old listing via `car.edit_url`'s listing ID in an `<a>` href. If not found, skip delete.
+
+Only after both checks pass may the delete proceed. The delete targets the old listing by its ID, not by title or index.
+
+**When refactoring this code: preserve all three of these checks. No exceptions.**
