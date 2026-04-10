@@ -258,6 +258,13 @@ def delete_old_listing(driver, car: CarData):
 
     try:
         # Safety check: both old and new listing must be visible (2 matches) before deleting.
+        # The new listing may take a moment to appear, so wait up to 30s.
+        try:
+            WebDriverWait(driver, 30).until(
+                lambda d: len(d.find_elements(By.XPATH, f"//span[contains(text(),'{car.var_title}')]")) >= 2
+            )
+        except TimeoutException:
+            pass
         matches = driver.find_elements(By.XPATH, f"//span[contains(text(),'{car.var_title}')]")
         if len(matches) < 2:
             raise Exception(
