@@ -215,14 +215,16 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     # --- Select free plan ---
     print(f"      Step: free plan")
     FREE_XPATHS = [
-        "//span[normalize-space(text())='Gratis']",
+        "//label[@for='feature-FREE']",
         "//label[.//span[normalize-space(text())='Gratis']]",
+        "//span[normalize-space(text())='Gratis']",
         "//*[@id='feature-bundles']//*[normalize-space(text())='Gratis']",
     ]
     free_clicked = False
     for xp in FREE_XPATHS:
         try:
-            driver.find_element(By.XPATH, xp).click()
+            el = driver.find_element(By.XPATH, xp)
+            driver.execute_script("arguments[0].click();", el)
             time.sleep(_w(1))
             free_clicked = True
             break
