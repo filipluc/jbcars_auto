@@ -77,21 +77,25 @@ def _collect_listing_items(driver):
     """
     items = []
 
-    # Wait for at least one listing link to appear
+    # Wait for at least one listing link to appear (old or new URL format)
+    LISTING_XPATH = "//a[contains(@href, '/v/auto-s/') or contains(@href, '/seller/view/m')]"
     try:
         WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '/v/auto-s/')]"))
+            EC.presence_of_element_located((By.XPATH, LISTING_XPATH))
         )
     except TimeoutException:
         print("Warning: no listing links found on dashboard within timeout.")
         return items
 
-    listing_links = driver.find_elements(By.XPATH, "//a[contains(@href, '/v/auto-s/')]")
+    listing_links = driver.find_elements(By.XPATH, LISTING_XPATH)
 
     seen_urls = set()
     for link in listing_links:
         href = link.get_attribute("href") or ""
-        if not href or "/seller/" in href:
+        if not href:
+            continue
+        # Allow /seller/view/m... (listing links) but skip other /seller/ profile links
+        if "/seller/" in href and "/seller/view/m" not in href:
             continue
 
         base_url = href.split("?")[0].rstrip("/")
