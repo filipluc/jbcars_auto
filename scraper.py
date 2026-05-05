@@ -87,6 +87,17 @@ def _collect_listing_items(driver):
         print("Warning: no listing links found on dashboard within timeout.")
         return items
 
+    # Scroll to bottom repeatedly to trigger lazy loading of all listings
+    last_count = 0
+    for _ in range(20):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(1.5)
+        current_count = len(driver.find_elements(By.XPATH, LISTING_XPATH))
+        if current_count == last_count:
+            break
+        last_count = current_count
+    driver.execute_script("window.scrollTo(0, 0);")
+
     listing_links = driver.find_elements(By.XPATH, LISTING_XPATH)
 
     seen_urls = set()
