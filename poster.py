@@ -154,7 +154,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
 
     # --- Single-select attributes ---
     print(f"      Step: selects")
-    _set_select(driver, "singleSelectAttribute[priceType]",     car.var_pricetype)
+    _set_select(driver, "singleSelectAttribute[priceType]",     "Te koop")
     _set_select(driver, "singleSelectAttribute[fuel]",          car.var_gas)
     _set_select(driver, "singleSelectAttribute[euronormBE]",    car.var_euro)
     _set_select(driver, "singleSelectAttribute[body]",          car.var_carroserie)
