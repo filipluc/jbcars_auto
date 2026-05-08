@@ -100,7 +100,7 @@ def _collect_listing_items(driver):
 
     listing_links = driver.find_elements(By.XPATH, LISTING_XPATH)
 
-    seen_urls = set()
+    seen_ids = set()
     for link in listing_links:
         href = link.get_attribute("href") or ""
         if not href:
@@ -110,23 +110,23 @@ def _collect_listing_items(driver):
             continue
 
         base_url = href.split("?")[0].rstrip("/")
-        if base_url in seen_urls:
+
+        # Extract listing ID (m\d+) — deduplicate across both URL formats
+        slug = base_url.split("/")[-1]
+        m = re.match(r'^(m\d+)', slug)
+        listing_id = m.group(1) if m else slug
+        if listing_id in seen_ids:
             continue
-        seen_urls.add(base_url)
+        seen_ids.add(listing_id)
 
         # Try to read title from a span inside the anchor
         try:
             title = link.find_element(By.XPATH, ".//span").text.strip()
         except NoSuchElementException:
             # Fallback: derive from URL slug
-            slug = base_url.split("/")[-1]
-            slug = re.sub(r'^m\d+-', '', slug)
-            title = slug.replace("-", " ").strip()
+            slug_clean = re.sub(r'^m\d+-', '', slug)
+            title = slug_clean.replace("-", " ").strip()
 
-        # Build seller view URL from listing ID (e.g. m2368587070)
-        slug = base_url.split("/")[-1]
-        m = re.match(r'^(m\d+)', slug)
-        listing_id = m.group(1) if m else slug
         seller_view_url = f"https://www.2dehands.be/seller/view/{listing_id}"
 
         is_reserved = _is_reserved(driver, link)
@@ -158,6 +158,19 @@ def scrape_one_listing(driver, edit_url):
     # Navigate to dashboard and click the listing naturally — Wijzig only appears this way
     driver.get(DASHBOARD_URL)
     time.sleep(_w(3))
+    # Scroll to load all lazy-loaded listings before searching
+    last_count = 0
+    for _ in range(20):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(1.5)
+        if driver.find_elements(By.XPATH, f"//a[contains(@href, '{listing_id}')]"):
+            break
+        current_count = len(driver.find_elements(By.XPATH, "//a[contains(@href, '/seller/view/m') or contains(@href, '/v/auto-s/')]"))
+        if current_count == last_count:
+            break
+        last_count = current_count
+    driver.execute_script("window.scrollTo(0, 0);")
+    time.sleep(_w(1))
     try:
         listing_link = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, f"//a[contains(@href, '{listing_id}')]"))
