@@ -306,6 +306,15 @@ def delete_old_listing(driver, car: CarData):
             pass
 
         time.sleep(_w(2))
+
+        # Dismiss "Gefeliciteerd" share popup if it appears
+        try:
+            close_btn = driver.find_element(By.XPATH, "//button[@aria-label='Close'] | //button[normalize-space(text())='Sluiten']")
+            driver.execute_script("arguments[0].click();", close_btn)
+            time.sleep(_w(1))
+        except NoSuchElementException:
+            pass
+
         print(f"    Deleted old listing: '{car.var_title}'")
 
     except IndexError:
