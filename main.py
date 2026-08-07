@@ -163,6 +163,7 @@ def main():
                 car = scraper.scrape_one_listing(driver, edit_url)
                 if not car:
                     raise Exception("Scraping returned no data.")
+                car.var_dashboard_title = title
 
                 # Post new listing
                 poster.post_listing(driver, car, max_photos=MAX_PHOTOS, desc_footer=DESC_FOOTER)

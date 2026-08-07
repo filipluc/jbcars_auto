@@ -35,6 +35,7 @@ class CarData:
     var_towingbraked: str = ""    # numericAttribute[towingWeightBrakes]
     var_towingunbraked: str = ""  # numericAttribute[towingWeightNoBrakes]
     edit_url: str = ""            # URL of original listing edit page (used for deletion)
+    var_dashboard_title: str = "" # Title as displayed on dashboard (used for delete safety check)
 
     def __str__(self):
         return self.var_title
