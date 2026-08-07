@@ -260,15 +260,15 @@ def delete_old_listing(driver, car: CarData):
 
     try:
         # Safety check: both old and new listing must be visible (2 matches) before deleting.
-        # Use the dashboard display title (how the span actually appears) not the form title.
-        search_title = car.var_dashboard_title or car.var_title
+        # Titles appear in <a> elements on the dashboard, not <span>.
+        search_title = car.var_title
         try:
             WebDriverWait(driver, 30).until(
-                lambda d: len(d.find_elements(By.XPATH, f"//span[contains(text(),'{search_title}')]")) >= 2
+                lambda d: len(d.find_elements(By.XPATH, f"//a[contains(text(),'{search_title}')]")) >= 2
             )
         except TimeoutException:
             pass
-        matches = driver.find_elements(By.XPATH, f"//span[contains(text(),'{search_title}')]")
+        matches = driver.find_elements(By.XPATH, f"//a[contains(text(),'{search_title}')]")
         if len(matches) < 2:
             raise Exception(
                 f"Cannot delete old listing: only {len(matches)} listing(s) found for "
