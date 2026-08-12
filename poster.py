@@ -173,7 +173,7 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
     _set_numeric(driver, "numericAttribute[mileage]",            car.var_km)
     _set_numeric(driver, "numericAttribute[engineDisplacement]", car.var_cilinder)
     _set_numeric(driver, "numericAttribute[numberOfSeatsBE]",    car.var_seats)
-    _set_numeric(driver, "textAttribute[carPassUrl]",            car.var_carpass)
+    _set_text(driver,    "textAttribute[carPassUrl]",             car.var_carpass)
     _set_numeric(driver, "numericAttribute[emptyWeightCars]",    car.var_emptyweight)
     _set_numeric(driver, "numericAttribute[numberOfCylinders]",  car.var_numcylinders)
     _set_numeric(driver, "numericAttribute[towingWeightBrakes]", car.var_towingbraked)
@@ -351,6 +351,21 @@ def _set_numeric(driver, id_fragment, value):
         el.click()
         el.send_keys(value)
         el.send_keys(Keys.TAB)
+        time.sleep(_w(0.5))
+    except NoSuchElementException:
+        pass
+
+
+def _set_text(driver, id_fragment, value):
+    """Set a text input using execCommand to avoid send_keys mangling special chars."""
+    if not value:
+        return
+    try:
+        el = driver.find_element(By.XPATH, f"//input[contains(@id, '{id_fragment}')]")
+        driver.execute_script(
+            "arguments[0].focus(); document.execCommand('insertText', false, arguments[1]);",
+            el, value
+        )
         time.sleep(_w(0.5))
     except NoSuchElementException:
         pass
