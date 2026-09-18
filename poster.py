@@ -7,6 +7,7 @@ Logic adapted from jbcars/AddCars/general.py (addCarFunction / deleteCarFunction
 
 import os
 import random
+import re
 import time
 
 
@@ -138,19 +139,43 @@ def post_listing(driver, car: CarData, max_photos=None, desc_footer=""):
 
     # --- Model / brand sub-select ---
     print(f"      Step: model")
-    elem_model = None
-    try:
-        elem_model = driver.find_element(By.XPATH, "//select[@name='singleSelectAttribute[model]']")
-    except NoSuchElementException:
+    print(f"      Step: model | var_model={repr(car.var_model)}")
+    for sel_name in ("singleSelectAttribute[model]", "singleSelectAttribute[brand]"):
         try:
-            elem_model = driver.find_element(By.XPATH, "//select[@name='singleSelectAttribute[brand]']")
+            sel_el = driver.find_element(By.XPATH, f"//select[@name='{sel_name}']")
         except NoSuchElementException:
-            pass
-    if elem_model and car.var_model:
-        elem_model.click()
-        elem_model.send_keys(car.var_model)
-        elem_model.send_keys(Keys.TAB)
-        time.sleep(_w(0.5))
+            continue
+
+        if car.var_model:
+            try:
+                Select(sel_el).select_by_value(car.var_model)
+                print(f"      Step: model selected: {repr(car.var_model)}")
+                time.sleep(_w(0.5))
+                break
+            except Exception as e:
+                print(f"      Step: model select_by_value failed: {e}")
+
+        # Fallback: match from title when var_model is empty or value not found
+        try:
+            opts = [(o.get_attribute("value"), o.text.strip())
+                    for o in Select(sel_el).options if o.get_attribute("value")]
+            title_norm = re.sub(r'[^a-z0-9 ]', ' ', car.var_title.lower())
+            best_val, best_score = None, 0
+            for val, _text in opts:
+                opt_norm = re.sub(r'[^a-z0-9 ]', ' ', val.lower())
+                words = [w for w in opt_norm.split() if len(w) > 1]
+                if words and all(w in title_norm for w in words):
+                    if len(opt_norm) > best_score:
+                        best_val, best_score = val, len(opt_norm)
+            if best_val:
+                Select(sel_el).select_by_value(best_val)
+                print(f"      Step: model auto-matched from title: {repr(best_val)}")
+                time.sleep(_w(0.5))
+            else:
+                print(f"      Step: model not matched from title")
+        except Exception as e:
+            print(f"      Step: model fallback failed: {e}")
+        break
 
     # --- Single-select attributes ---
     print(f"      Step: selects")
